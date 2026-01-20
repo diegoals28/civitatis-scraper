@@ -16,7 +16,8 @@ ENV/
 
 # Testing
 *.png
-*.html
+booking_form*.html
+page_source.html
 test_*.py
 debug_*.py
 
