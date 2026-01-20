@@ -4,9 +4,11 @@ Civitatis Tour Operator Scraper - Flask Backend
 
 import asyncio
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from scraper import compare_all_schedules
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 
 @app.route("/")
