@@ -1,0 +1,476 @@
+/* Tourmageddon Design System */
+:root {
+    /* Primary Brand Colors */
+    --brand-orange: #ee682a;
+    --brand-green: #2dba7d;
+
+    /* Backgrounds */
+    --bg-sidebar: #1a1a1a;
+    --bg-main: #f8f9fa;
+    --bg-card: #ffffff;
+
+    /* Text */
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+
+    /* Borders */
+    --border-light: #e5e7eb;
+    --border-dark: #374151;
+
+    /* States */
+    --hover-bg: rgba(128, 128, 128, 0.1);
+    --active-bg: #ee682a;
+
+    /* Font Sizes */
+    --text-xs: 12px;
+    --text-sm: 14px;
+    --text-base: 15px;
+    --text-lg: 18px;
+    --text-xl: 20px;
+    --text-2xl: 24px;
+
+    /* Border Radius */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    /* Spacing */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+}
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+    font-size: var(--text-base);
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--space-6);
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: var(--space-8);
+}
+
+header h1 {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--brand-orange) 0%, var(--brand-green) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--space-2);
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+}
+
+/* Controls Section (Card) */
+.controls-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: var(--space-5);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--space-2);
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: var(--text-sm);
+}
+
+select {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--brand-orange);
+}
+
+/* Calendar */
+.calendar-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
+.calendar-header span {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.calendar-nav {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--text-base);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calendar-nav:hover {
+    background: var(--hover-bg);
+    border-color: var(--border-dark);
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
+}
+
+.calendar-weekdays span {
+    text-align: center;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: var(--space-2) 0;
+    text-transform: uppercase;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--space-1);
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.calendar-day:hover:not(.disabled):not(.empty) {
+    background: rgba(238, 104, 42, 0.1);
+    color: var(--brand-orange);
+}
+
+.calendar-day.selected {
+    background: var(--brand-orange);
+    color: white;
+    font-weight: 600;
+}
+
+.calendar-day.disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    background: transparent;
+}
+
+.calendar-day.empty {
+    background: transparent;
+    cursor: default;
+}
+
+/* Selected dates info */
+.selected-dates-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+.selected-dates-info span#selected-count {
+    color: var(--brand-orange);
+    font-weight: 600;
+}
+
+.btn-small {
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-small:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.btn-primary, .btn-secondary {
+    flex: 1;
+    padding: var(--space-3) var(--space-5);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.btn-primary {
+    background: var(--brand-orange);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #d55a1f;
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: var(--bg-card);
+    color: var(--border-dark);
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #f9fafb;
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Spinner */
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Progress bar */
+#progress-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);
+    box-shadow: var(--shadow-sm);
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--bg-main);
+    border-radius: var(--space-1);
+    overflow: hidden;
+    margin-bottom: var(--space-3);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--brand-orange), var(--brand-green));
+    border-radius: var(--space-1);
+    transition: width 0.3s ease;
+}
+
+#progress-text {
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: var(--text-sm);
+}
+
+/* Error Card */
+.error-card {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+    color: #dc2626;
+    font-size: var(--text-sm);
+}
+
+/* Results Section */
+#results-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-6);
+}
+
+#results-section h2 {
+    margin-bottom: var(--space-5);
+    color: var(--text-primary);
+    font-size: var(--text-xl);
+    font-weight: 600;
+}
+
+/* Table */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #f9fafb;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+}
+
+td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+
+tr:hover {
+    background: #f9fafb;
+}
+
+/* Quota Badge */
+.quota-badge {
+    background: #fef3ee;
+    color: #c5521f;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    display: inline-block;
+}
+
+/* Date Header Row */
+.date-header-row {
+    background: linear-gradient(135deg, var(--brand-orange) 0%, var(--brand-green) 100%);
+}
+
+.date-header-row:hover {
+    background: linear-gradient(135deg, var(--brand-orange) 0%, var(--brand-green) 100%) !important;
+}
+
+.date-header {
+    color: white !important;
+    font-weight: 600;
+    font-size: var(--text-sm);
+    padding: var(--space-3) var(--space-4) !important;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .container {
+        padding: var(--space-4);
+    }
+
+    header h1 {
+        font-size: var(--text-xl);
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .calendar-day {
+        font-size: var(--text-xs);
+    }
+
+    th, td {
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--text-xs);
+    }
+}
