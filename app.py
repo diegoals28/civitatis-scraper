@@ -15,10 +15,14 @@ app = Flask(__name__)
 CORS(app)
 
 # Database configuration
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///civitatis.db')
-# Fix for Railway PostgreSQL URL format
-if database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # Fix for Railway PostgreSQL URL format
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+else:
+    # Use SQLite as fallback
+    database_url = 'sqlite:///civitatis.db'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -26,13 +30,18 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
 # Initialize database and scheduler
-with app.app_context():
-    db.create_all()
+try:
+    with app.app_context():
+        db.create_all()
+        print(f"Database connected: {database_url[:30]}...", flush=True)
 
-    # Import and start scheduler
-    from scheduler import init_scheduler, ensure_tours_exist
-    ensure_tours_exist()
-    init_scheduler(app)
+        # Import and start scheduler
+        from scheduler import init_scheduler, ensure_tours_exist
+        ensure_tours_exist()
+        init_scheduler(app)
+except Exception as e:
+    print(f"Database initialization error: {e}", flush=True)
+    print("App will start but database features won't work until DATABASE_URL is configured", flush=True)
 
 
 @app.route("/")
