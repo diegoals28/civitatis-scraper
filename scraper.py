@@ -203,12 +203,17 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
         price = await extract_price(page)
         return [{"time": "N/A", "operator": "No se encontraron horarios", "price": price}]
 
-    # Extract price once
-    price = await extract_price(page)
+    # Known provider mappings
+    provider_names = {
+        "36417": "Enroma",
+        "285": "Tourismotion",
+        "6130": "Vivicos",
+        "54973": "Rutasromanas",
+    }
 
-    # For each schedule, select it and get the provider ID
+    # For each schedule, select it and get the provider ID and price
     for schedule in schedules:
-        # Select this schedule to get its specific provider
+        # Select this schedule to get its specific provider and price
         await page.evaluate(f'''() => {{
             const select = document.getElementById('horaActividad');
             if (select) {{
@@ -216,7 +221,7 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
                 select.dispatchEvent(new Event('change', {{ bubbles: true }}));
             }}
         }}''')
-        await page.wait_for_timeout(500)
+        await page.wait_for_timeout(800)  # Wait for price to update
 
         # Get provider ID for this schedule
         proveedor_field = page.locator('#idProveedor')
@@ -224,16 +229,11 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
         if await proveedor_field.count() > 0:
             provider_id = await proveedor_field.get_attribute('value') or ""
 
-        # Known provider mappings
-        provider_names = {
-            "36417": "Enroma",
-            "285": "Tourismotion",
-            "6130": "Vivicos",
-            "54973": "Rutasromanas",
-        }
-
         # Get operator name from mapping or show ID
         operator = provider_names.get(provider_id, f"Proveedor #{provider_id}") if provider_id else "Desconocido"
+
+        # Extract price for this specific schedule
+        price = await extract_price(page)
 
         results.append({
             "time": schedule["time"],
@@ -294,24 +294,52 @@ async def extract_operator_info(page: Page) -> str:
 async def extract_price(page: Page) -> str:
     """Extract price information from the page."""
 
-    # Civitatis-specific price selectors
+    # Try to get the price from the booking form price display
+    # This is the price that updates when selecting a schedule
     price_selectors = [
-        '.a-text--price--big',
-        '#tPrecioSpan0',  # Adult price
-        '.pax-price',
+        '#tPrecioSpan0',  # Adult price in booking form
         '.m-activity-price__top .a-text--price--big',
+        '.a-text--price--big',
+        '.pax-price',
         '[class*="price-final"]',
         '.total-price',
+        '#precioTotal',
+        '.booking-price',
     ]
 
     for selector in price_selectors:
         element = page.locator(selector).first
         if await element.count() > 0:
             text = await element.text_content() or ""
+            text = text.strip()
             # Extract numeric price with € symbol
             price_match = re.search(r'(\d+[.,]?\d*)\s*€', text)
             if price_match:
                 return price_match.group(1) + " €"
+            # Try without € symbol
+            price_match = re.search(r'(\d+[.,]\d{2})', text)
+            if price_match:
+                return price_match.group(1) + " €"
+
+    # Try to find price in the page via JavaScript
+    try:
+        price_js = await page.evaluate('''() => {
+            // Try to get from price spans
+            const priceEl = document.querySelector('#tPrecioSpan0');
+            if (priceEl) return priceEl.textContent;
+
+            // Try booking form total
+            const totalEl = document.querySelector('.m-activity-price__total');
+            if (totalEl) return totalEl.textContent;
+
+            return null;
+        }''')
+        if price_js:
+            price_match = re.search(r'(\d+[.,]?\d*)\s*€?', price_js)
+            if price_match:
+                return price_match.group(1) + " €"
+    except:
+        pass
 
     return None
 

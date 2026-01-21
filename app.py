@@ -1,16 +1,11 @@
 """
 Civitatis Tour Operator Scraper - Flask Backend
 """
-print("=== APP.PY STARTING ===", flush=True)
 
 import asyncio
-print("asyncio imported", flush=True)
 from flask import Flask, render_template, request, jsonify
-print("flask imported", flush=True)
 from flask_cors import CORS
-print("flask_cors imported", flush=True)
 from scraper import compare_all_schedules
-print("scraper imported", flush=True)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
