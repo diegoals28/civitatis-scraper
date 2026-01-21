@@ -207,7 +207,9 @@
                     </button>
                 </div>
 
-                <div id="last-update" class="last-update"></div>
+                <div id="scrape-status" class="last-update" style="padding: 10px; background: #f9f9f9; border-radius: 8px; margin-top: 15px;">
+                    <div id="scrape-status-text">Cargando estado...</div>
+                </div>
 
                 <div class="action-buttons" style="margin-top: 20px;">
                     <button type="button" id="refresh-btn" class="refresh-btn">
@@ -291,17 +293,8 @@
                     renderCalendar();
                 }
 
-                // Get last scrape status
-                const statusResponse = await fetch(`${API_URL}/api/scrape/status`);
-                const statusData = await statusResponse.json();
-
-                if (statusData.success && statusData.last_scrape) {
-                    const lastScrape = statusData.last_scrape;
-                    if (lastScrape.finished_at) {
-                        const date = new Date(lastScrape.finished_at);
-                        lastUpdateEl.textContent = `Ultima actualizacion: ${date.toLocaleString('es-ES')}`;
-                    }
-                }
+                // Get scrape status
+                await updateScrapeStatus();
 
             } catch (error) {
                 console.error('Error loading calendar data:', error);
@@ -395,6 +388,47 @@
             setTimeout(() => { errorCard.hidden = true; }, 5000);
         }
 
+        async function updateScrapeStatus() {
+            const statusEl = document.getElementById('scrape-status-text');
+
+            try {
+                const response = await fetch(`${API_URL}/api/scrape/status`);
+                const data = await response.json();
+
+                if (data.success && data.last_scrape) {
+                    const scrape = data.last_scrape;
+
+                    if (scrape.status === 'running') {
+                        statusEl.innerHTML = `
+                            <span style="color: var(--brand-orange); font-weight: bold;">
+                                ⏳ Scrape en progreso...
+                            </span>
+                            <br><small>Iniciado: ${new Date(scrape.started_at).toLocaleString('es-ES')}</small>
+                        `;
+                        // Auto-refresh status every 10 seconds while running
+                        setTimeout(updateScrapeStatus, 10000);
+                    } else if (scrape.status === 'success') {
+                        statusEl.innerHTML = `
+                            <span style="color: var(--brand-green);">✓ Ultimo scrape completado</span>
+                            <br><small>
+                                ${new Date(scrape.finished_at).toLocaleString('es-ES')}
+                                <br>${scrape.tours_scraped} tours, ${scrape.dates_scraped} fechas
+                            </small>
+                        `;
+                    } else if (scrape.status === 'failed') {
+                        statusEl.innerHTML = `
+                            <span style="color: red;">✗ Ultimo scrape falló</span>
+                            <br><small>${scrape.error || 'Error desconocido'}</small>
+                        `;
+                    }
+                } else {
+                    statusEl.innerHTML = '<small>No hay scrapes registrados. Click "Actualizar Datos Ahora"</small>';
+                }
+            } catch (error) {
+                statusEl.innerHTML = '<small style="color: red;">Error obteniendo estado</small>';
+            }
+        }
+
         function toggleDateSelection(dateStr, element) {
             if (selectedDates.has(dateStr)) {
                 selectedDates.delete(dateStr);
@@ -472,7 +506,7 @@
 
         refreshBtn.addEventListener('click', async () => {
             refreshBtn.disabled = true;
-            refreshBtn.textContent = 'Actualizando...';
+            refreshBtn.textContent = 'Iniciando...';
 
             try {
                 const response = await fetch(`${API_URL}/api/scrape/manual`, {
@@ -481,15 +515,23 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('Actualizacion iniciada. Los datos se actualizaran en unos minutos.');
-                    // Reload after a delay
-                    setTimeout(() => {
-                        loadCalendarData();
-                    }, 30000);
+                    refreshBtn.textContent = 'Scrape en progreso...';
+                    // Start monitoring status
+                    updateScrapeStatus();
+                    // Reload calendar periodically
+                    const checkInterval = setInterval(async () => {
+                        const statusResp = await fetch(`${API_URL}/api/scrape/status`);
+                        const statusData = await statusResp.json();
+                        if (statusData.last_scrape && statusData.last_scrape.status !== 'running') {
+                            clearInterval(checkInterval);
+                            refreshBtn.disabled = false;
+                            refreshBtn.textContent = 'Actualizar Datos Ahora';
+                            loadCalendarData();
+                        }
+                    }, 15000);
                 }
             } catch (error) {
                 showError('Error iniciando actualizacion');
-            } finally {
                 refreshBtn.disabled = false;
                 refreshBtn.textContent = 'Actualizar Datos Ahora';
             }
