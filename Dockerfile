@@ -24,5 +24,5 @@ COPY . .
 # Expose port (Railway uses dynamic PORT)
 EXPOSE 8080
 
-# Run the application with Python directly for debugging
-CMD python -u app.py
+# Run the application
+CMD ["python", "-u", "app.py"]
