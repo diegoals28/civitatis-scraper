@@ -24,6 +24,5 @@ COPY . .
 # Expose port (Railway uses dynamic PORT)
 EXPOSE 8080
 
-# Run the application - use PORT env variable for Railway
-# Added timeout and logging for debugging
-CMD gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 1 --log-level debug --access-logfile - --error-logfile -
+# Run the application with Python directly for debugging
+CMD python -u app.py
