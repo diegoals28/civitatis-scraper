@@ -21,8 +21,8 @@ RUN playwright install chromium --with-deps
 # Copy application code
 COPY . .
 
-# Expose port
+# Expose port (Railway uses dynamic PORT)
 EXPOSE 8080
 
-# Run the application
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8080"]
+# Run the application - use PORT env variable for Railway
+CMD gunicorn app:app --bind 0.0.0.0:${PORT:-8080}
