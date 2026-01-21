@@ -25,4 +25,5 @@ COPY . .
 EXPOSE 8080
 
 # Run the application - use PORT env variable for Railway
-CMD gunicorn app:app --bind 0.0.0.0:${PORT:-8080}
+# Added timeout and logging for debugging
+CMD gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 1 --log-level debug --access-logfile - --error-logfile -
