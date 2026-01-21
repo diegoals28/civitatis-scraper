@@ -211,9 +211,12 @@
                     <div id="scrape-status-text">Cargando estado...</div>
                 </div>
 
-                <div class="action-buttons" style="margin-top: 20px;">
+                <div class="action-buttons" style="margin-top: 20px; display: flex; gap: 10px;">
                     <button type="button" id="refresh-btn" class="refresh-btn">
                         Actualizar Datos Ahora
+                    </button>
+                    <button type="button" id="reset-btn" class="clear-btn" style="display: none;">
+                        Resetear Scrape Atascado
                     </button>
                 </div>
             </div>
@@ -390,6 +393,7 @@
 
         async function updateScrapeStatus() {
             const statusEl = document.getElementById('scrape-status-text');
+            const resetBtn = document.getElementById('reset-btn');
 
             try {
                 const response = await fetch(`${API_URL}/api/scrape/status`);
@@ -399,15 +403,20 @@
                     const scrape = data.last_scrape;
 
                     if (scrape.status === 'running') {
+                        const startTime = new Date(scrape.started_at);
+                        const elapsed = Math.round((Date.now() - startTime.getTime()) / 60000);
                         statusEl.innerHTML = `
                             <span style="color: var(--brand-orange); font-weight: bold;">
                                 ⏳ Scrape en progreso...
                             </span>
-                            <br><small>Iniciado: ${new Date(scrape.started_at).toLocaleString('es-ES')}</small>
+                            <br><small>Iniciado: ${startTime.toLocaleString('es-ES')} (${elapsed} min)</small>
                         `;
+                        // Show reset button if running for more than 5 minutes
+                        resetBtn.style.display = elapsed > 5 ? 'block' : 'none';
                         // Auto-refresh status every 10 seconds while running
                         setTimeout(updateScrapeStatus, 10000);
                     } else if (scrape.status === 'success') {
+                        resetBtn.style.display = 'none';
                         statusEl.innerHTML = `
                             <span style="color: var(--brand-green);">✓ Ultimo scrape completado</span>
                             <br><small>
@@ -416,16 +425,28 @@
                             </small>
                         `;
                     } else if (scrape.status === 'failed') {
+                        resetBtn.style.display = 'none';
                         statusEl.innerHTML = `
                             <span style="color: red;">✗ Ultimo scrape falló</span>
                             <br><small>${scrape.error || 'Error desconocido'}</small>
                         `;
                     }
                 } else {
+                    resetBtn.style.display = 'none';
                     statusEl.innerHTML = '<small>No hay scrapes registrados. Click "Actualizar Datos Ahora"</small>';
                 }
             } catch (error) {
                 statusEl.innerHTML = '<small style="color: red;">Error obteniendo estado</small>';
+            }
+        }
+
+        async function resetScrapeStatus() {
+            try {
+                await fetch(`${API_URL}/api/scrape/reset`, { method: 'POST' });
+                await updateScrapeStatus();
+                loadCalendarData();
+            } catch (error) {
+                showError('Error reseteando estado');
             }
         }
 
@@ -486,6 +507,7 @@
         // Event listeners
         clearBtn.addEventListener('click', clearSelection);
         exportBtn.addEventListener('click', exportToExcel);
+        document.getElementById('reset-btn').addEventListener('click', resetScrapeStatus);
 
         tourSelect.addEventListener('change', (e) => {
             selectedTourId = parseInt(e.target.value);

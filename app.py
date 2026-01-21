@@ -237,6 +237,15 @@ def scrape_status():
             "last_scrape": None
         })
 
+    # Auto-fix stuck scrapes (running for more than 30 minutes)
+    if log.status == 'running' and log.started_at:
+        elapsed = datetime.utcnow() - log.started_at
+        if elapsed.total_seconds() > 1800:  # 30 minutes
+            log.status = 'failed'
+            log.finished_at = datetime.utcnow()
+            log.error_message = 'Scrape timeout - took longer than 30 minutes'
+            db.session.commit()
+
     return jsonify({
         "success": True,
         "last_scrape": {
@@ -248,6 +257,21 @@ def scrape_status():
             "error": log.error_message
         }
     })
+
+
+@app.route("/api/scrape/reset", methods=["POST"])
+def reset_scrape_status():
+    """Reset stuck scrape status"""
+    log = ScrapeLog.query.order_by(ScrapeLog.id.desc()).first()
+
+    if log and log.status == 'running':
+        log.status = 'failed'
+        log.finished_at = datetime.utcnow()
+        log.error_message = 'Manually reset'
+        db.session.commit()
+        return jsonify({"success": True, "message": "Scrape status reset"})
+
+    return jsonify({"success": True, "message": "No running scrape to reset"})
 
 
 @app.route("/api/health", methods=["GET"])
