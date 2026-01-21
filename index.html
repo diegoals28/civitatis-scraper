@@ -100,6 +100,45 @@
             background: #ccc;
             cursor: not-allowed;
         }
+        .calendar-day.has-data.selected {
+            outline: 3px solid var(--brand-orange);
+            outline-offset: -3px;
+        }
+        .selected-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .export-btn {
+            background: var(--brand-green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .export-btn:hover {
+            background: #25a06a;
+        }
+        .export-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .clear-btn {
+            background: transparent;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -158,6 +197,16 @@
                     <div id="calendar-days" class="calendar-days"></div>
                 </div>
 
+                <div id="selected-info" class="selected-info" style="display: none;">
+                    <div>
+                        <span id="selected-count">0</span> fechas seleccionadas
+                        <button type="button" id="clear-btn" class="clear-btn">Limpiar</button>
+                    </div>
+                    <button type="button" id="export-btn" class="export-btn">
+                        Exportar Excel
+                    </button>
+                </div>
+
                 <div id="last-update" class="last-update"></div>
 
                 <div class="action-buttons" style="margin-top: 20px;">
@@ -182,6 +231,7 @@
         let calendarData = {};
         let tours = [];
         let selectedTourId = null;
+        let selectedDates = new Set();
 
         // DOM Elements
         const tourSelect = document.getElementById('tour-select');
@@ -194,6 +244,10 @@
         const errorCard = document.getElementById('error-message');
         const errorText = document.getElementById('error-text');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const selectedInfo = document.getElementById('selected-info');
+        const selectedCountEl = document.getElementById('selected-count');
+        const clearBtn = document.getElementById('clear-btn');
+        const exportBtn = document.getElementById('export-btn');
 
         // Month names in Spanish
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -300,6 +354,11 @@
                     if (dateData && dateData.schedules && dateData.schedules.length > 0) {
                         dayCell.classList.add('has-data');
 
+                        // Check if selected
+                        if (selectedDates.has(dateStr)) {
+                            dayCell.classList.add('selected');
+                        }
+
                         // Create tooltip
                         const tooltip = document.createElement('div');
                         tooltip.className = 'tooltip';
@@ -320,6 +379,9 @@
                         `;
 
                         dayCell.appendChild(tooltip);
+
+                        // Click handler for selection
+                        dayCell.addEventListener('click', () => toggleDateSelection(dateStr, dayCell));
                     }
                 }
 
@@ -333,9 +395,68 @@
             setTimeout(() => { errorCard.hidden = true; }, 5000);
         }
 
+        function toggleDateSelection(dateStr, element) {
+            if (selectedDates.has(dateStr)) {
+                selectedDates.delete(dateStr);
+                element.classList.remove('selected');
+            } else {
+                selectedDates.add(dateStr);
+                element.classList.add('selected');
+            }
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            const count = selectedDates.size;
+            selectedCountEl.textContent = count;
+            selectedInfo.style.display = count > 0 ? 'flex' : 'none';
+        }
+
+        function clearSelection() {
+            selectedDates.clear();
+            renderCalendar();
+            updateSelectionUI();
+        }
+
+        function exportToExcel() {
+            if (selectedDates.size === 0) return;
+
+            const sortedDates = Array.from(selectedDates).sort();
+            let csv = 'Fecha,Horario,Operador,Precio,Plazas\n';
+
+            sortedDates.forEach(dateStr => {
+                const dateData = calendarData[dateStr];
+                if (dateData && dateData.schedules) {
+                    const dateParts = dateStr.split('-');
+                    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+                    dateData.schedules.forEach(s => {
+                        const quota = s.quota || '';
+                        csv += `"${formattedDate}","${s.time}","${s.operator || ''}","${s.price || ''}","${quota}"\n`;
+                    });
+                }
+            });
+
+            // Download
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+
+            const selectedTour = tours.find(t => t.id === selectedTourId);
+            const tourName = selectedTour ? selectedTour.name.replace(/[^a-zA-Z0-9]/g, '_') : 'tour';
+            link.download = `civitatis_${tourName}_${new Date().toISOString().split('T')[0]}.csv`;
+
+            link.click();
+        }
+
         // Event listeners
+        clearBtn.addEventListener('click', clearSelection);
+        exportBtn.addEventListener('click', exportToExcel);
+
         tourSelect.addEventListener('change', (e) => {
             selectedTourId = parseInt(e.target.value);
+            selectedDates.clear();
+            updateSelectionUI();
             loadCalendarData();
         });
 
