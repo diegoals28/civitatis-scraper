@@ -5,12 +5,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Civitatis - Comparador de Operadores</title>
     <link rel="stylesheet" href="./static/style.css">
+    <style>
+        /* Tooltip styles */
+        .calendar-day {
+            position: relative;
+        }
+        .calendar-day.has-data {
+            background: linear-gradient(135deg, var(--brand-green) 0%, #25a06a 100%);
+            color: white;
+            cursor: pointer;
+        }
+        .calendar-day.has-data:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        .tooltip {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            min-width: 200px;
+            max-width: 300px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 100;
+            font-size: 12px;
+        }
+        .calendar-day:hover .tooltip {
+            display: block;
+        }
+        .tooltip-header {
+            font-weight: bold;
+            color: var(--brand-orange);
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .tooltip-schedule {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .tooltip-schedule:last-child {
+            border-bottom: none;
+        }
+        .tooltip-time {
+            font-weight: 600;
+            color: #333;
+        }
+        .tooltip-operator {
+            color: #666;
+        }
+        .tooltip-price {
+            color: var(--brand-green);
+            font-weight: 600;
+        }
+        .tooltip-quota {
+            background: var(--brand-orange);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+        .no-data-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .last-update {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
+        .refresh-btn {
+            background: var(--brand-orange);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .refresh-btn:hover {
+            background: #d55a22;
+        }
+        .refresh-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .loading-overlay.hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div style="text-align: center;">
+            <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 20px;"></div>
+            <p>Cargando datos...</p>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <h1>Comparador de Operadores</h1>
-            <p class="subtitle">Selecciona fechas y compara operadores de tours</p>
+            <p class="subtitle">Pasa el mouse sobre las fechas para ver horarios y proveedores</p>
         </header>
 
         <main>
@@ -18,9 +136,7 @@
                 <div class="form-group">
                     <label for="tour-select">Tour</label>
                     <select id="tour-select">
-                        <option value="https://www.civitatis.com/es/roma/visita-guiada-roma-antigua/">Coliseo, Foro y Palatino</option>
-                        <option value="https://www.civitatis.com/es/roma/visita-guiada-vaticano/">Museos Vaticanos y Capilla Sixtina</option>
-                        <option value="https://www.civitatis.com/es/roma/tour-coliseo-arena-gladiadores/">Coliseo + Arena de Gladiadores</option>
+                        <option value="">Cargando tours...</option>
                     </select>
                 </div>
 
@@ -42,53 +158,17 @@
                     <div id="calendar-days" class="calendar-days"></div>
                 </div>
 
-                <div class="selected-dates-info">
-                    <span id="selected-count">0</span> fechas seleccionadas
-                    <button type="button" id="clear-dates" class="btn-small">Limpiar</button>
-                </div>
+                <div id="last-update" class="last-update"></div>
 
-                <div class="action-buttons">
-                    <button type="button" id="analyze-btn" class="btn-primary">
-                        <span class="btn-text">Analizar Fechas</span>
-                        <span class="btn-loading" hidden>
-                            <span class="spinner"></span>
-                            Analizando...
-                        </span>
-                    </button>
-                    <button type="button" id="export-btn" class="btn-secondary" disabled>
-                        Exportar Excel
+                <div class="action-buttons" style="margin-top: 20px;">
+                    <button type="button" id="refresh-btn" class="refresh-btn">
+                        Actualizar Datos Ahora
                     </button>
                 </div>
             </div>
 
             <div id="error-message" class="error-card" hidden>
                 <strong>Error:</strong> <span id="error-text"></span>
-            </div>
-
-            <div id="progress-section" hidden>
-                <div class="progress-bar">
-                    <div id="progress-fill" class="progress-fill"></div>
-                </div>
-                <p id="progress-text">Analizando fecha 1 de 5...</p>
-            </div>
-
-            <div id="results-section" hidden>
-                <h2>Resultados</h2>
-                <div class="table-wrapper">
-                    <table id="results-table">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Horario</th>
-                                <th>Operador</th>
-                                <th>Precio</th>
-                                <th>Plazas</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-body">
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </main>
     </div>
@@ -99,8 +179,9 @@
 
         // State
         let currentDate = new Date();
-        let selectedDates = new Set();
-        let allResults = [];
+        let calendarData = {};
+        let tours = [];
+        let selectedTourId = null;
 
         // DOM Elements
         const tourSelect = document.getElementById('tour-select');
@@ -108,48 +189,97 @@
         const currentMonthEl = document.getElementById('current-month');
         const prevMonthBtn = document.getElementById('prev-month');
         const nextMonthBtn = document.getElementById('next-month');
-        const selectedCountEl = document.getElementById('selected-count');
-        const clearDatesBtn = document.getElementById('clear-dates');
-        const analyzeBtn = document.getElementById('analyze-btn');
-        const exportBtn = document.getElementById('export-btn');
+        const lastUpdateEl = document.getElementById('last-update');
+        const refreshBtn = document.getElementById('refresh-btn');
         const errorCard = document.getElementById('error-message');
         const errorText = document.getElementById('error-text');
-        const progressSection = document.getElementById('progress-section');
-        const progressFill = document.getElementById('progress-fill');
-        const progressText = document.getElementById('progress-text');
-        const resultsSection = document.getElementById('results-section');
-        const resultsBody = document.getElementById('results-body');
+        const loadingOverlay = document.getElementById('loading-overlay');
 
         // Month names in Spanish
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-        // Initialize calendar
+        // Load tours on startup
+        async function loadTours() {
+            try {
+                const response = await fetch(`${API_URL}/api/tours`);
+                const data = await response.json();
+
+                if (data.success && data.data.length > 0) {
+                    tours = data.data;
+                    tourSelect.innerHTML = tours.map(t =>
+                        `<option value="${t.id}">${t.name}</option>`
+                    ).join('');
+
+                    selectedTourId = tours[0].id;
+                    loadCalendarData();
+                } else {
+                    tourSelect.innerHTML = '<option value="">No hay tours configurados</option>';
+                }
+            } catch (error) {
+                console.error('Error loading tours:', error);
+                tourSelect.innerHTML = '<option value="">Error cargando tours</option>';
+            }
+        }
+
+        // Load calendar data for selected tour
+        async function loadCalendarData() {
+            if (!selectedTourId) return;
+
+            loadingOverlay.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${API_URL}/api/calendar/${selectedTourId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    calendarData = data.calendar || {};
+                    renderCalendar();
+                }
+
+                // Get last scrape status
+                const statusResponse = await fetch(`${API_URL}/api/scrape/status`);
+                const statusData = await statusResponse.json();
+
+                if (statusData.success && statusData.last_scrape) {
+                    const lastScrape = statusData.last_scrape;
+                    if (lastScrape.finished_at) {
+                        const date = new Date(lastScrape.finished_at);
+                        lastUpdateEl.textContent = `Ultima actualizacion: ${date.toLocaleString('es-ES')}`;
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error loading calendar data:', error);
+                showError('Error cargando datos del calendario');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Render calendar
         function renderCalendar() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
 
             currentMonthEl.textContent = `${monthNames[month]} ${year}`;
 
-            // Get first day of month and total days
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
             const totalDays = lastDay.getDate();
 
-            // Get day of week for first day (0=Sunday, adjust for Monday start)
             let startDay = firstDay.getDay() - 1;
             if (startDay < 0) startDay = 6;
 
             calendarDays.innerHTML = '';
 
-            // Empty cells for days before month starts
+            // Empty cells
             for (let i = 0; i < startDay; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = 'calendar-day empty';
                 calendarDays.appendChild(emptyCell);
             }
 
-            // Days of the month
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -161,40 +291,54 @@
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const cellDate = new Date(year, month, day);
 
-                // Disable past dates
                 if (cellDate < today) {
                     dayCell.classList.add('disabled');
                 } else {
-                    dayCell.dataset.date = dateStr;
+                    // Check if we have data for this date
+                    const dateData = calendarData[dateStr];
 
-                    if (selectedDates.has(dateStr)) {
-                        dayCell.classList.add('selected');
+                    if (dateData && dateData.schedules && dateData.schedules.length > 0) {
+                        dayCell.classList.add('has-data');
+
+                        // Create tooltip
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'tooltip';
+
+                        const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+                        const dayName = dayNames[cellDate.getDay()];
+
+                        tooltip.innerHTML = `
+                            <div class="tooltip-header">${dayName} ${day}/${month + 1}</div>
+                            ${dateData.schedules.map(s => `
+                                <div class="tooltip-schedule">
+                                    <span class="tooltip-time">${s.time}</span>
+                                    <span class="tooltip-operator">${s.operator || 'N/A'}</span>
+                                    <span class="tooltip-price">${s.price || '-'}</span>
+                                    ${s.quota ? `<span class="tooltip-quota">${s.quota}</span>` : ''}
+                                </div>
+                            `).join('')}
+                        `;
+
+                        dayCell.appendChild(tooltip);
                     }
-
-                    dayCell.addEventListener('click', () => toggleDate(dateStr, dayCell));
                 }
 
                 calendarDays.appendChild(dayCell);
             }
         }
 
-        function toggleDate(dateStr, element) {
-            if (selectedDates.has(dateStr)) {
-                selectedDates.delete(dateStr);
-                element.classList.remove('selected');
-            } else {
-                selectedDates.add(dateStr);
-                element.classList.add('selected');
-            }
-            updateSelectedCount();
+        function showError(message) {
+            errorText.textContent = message;
+            errorCard.hidden = false;
+            setTimeout(() => { errorCard.hidden = true; }, 5000);
         }
 
-        function updateSelectedCount() {
-            selectedCountEl.textContent = selectedDates.size;
-            analyzeBtn.disabled = selectedDates.size === 0;
-        }
+        // Event listeners
+        tourSelect.addEventListener('change', (e) => {
+            selectedTourId = parseInt(e.target.value);
+            loadCalendarData();
+        });
 
-        // Navigation
         prevMonthBtn.addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() - 1);
             renderCalendar();
@@ -205,156 +349,33 @@
             renderCalendar();
         });
 
-        clearDatesBtn.addEventListener('click', () => {
-            selectedDates.clear();
-            renderCalendar();
-            updateSelectedCount();
-        });
-
-        // Analyze dates
-        analyzeBtn.addEventListener('click', async () => {
-            if (selectedDates.size === 0) return;
-
-            const url = tourSelect.value;
-            const dates = Array.from(selectedDates).sort();
-
-            // Reset state
-            errorCard.hidden = true;
-            resultsSection.hidden = true;
-            allResults = [];
-
-            // Show loading
-            analyzeBtn.querySelector('.btn-text').hidden = true;
-            analyzeBtn.querySelector('.btn-loading').hidden = false;
-            analyzeBtn.disabled = true;
-            exportBtn.disabled = true;
-
-            progressSection.hidden = false;
-            progressFill.style.width = '0%';
+        refreshBtn.addEventListener('click', async () => {
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Actualizando...';
 
             try {
-                for (let i = 0; i < dates.length; i++) {
-                    const date = dates[i];
-                    progressText.textContent = `Analizando fecha ${i + 1} de ${dates.length}...`;
-                    progressFill.style.width = `${((i) / dates.length) * 100}%`;
-
-                    const response = await fetch(`${API_URL}/api/scrape`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url, date, language: 'es' })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success && data.data) {
-                        data.data.forEach(item => {
-                            allResults.push({
-                                date: date,
-                                time: item.time,
-                                operator: item.operator,
-                                price: item.price,
-                                quota: item.quota || null
-                            });
-                        });
-                    }
-
-                    progressFill.style.width = `${((i + 1) / dates.length) * 100}%`;
-                }
-
-                displayResults();
-                exportBtn.disabled = allResults.length === 0;
-
-            } catch (error) {
-                errorText.textContent = error.message;
-                errorCard.hidden = false;
-            } finally {
-                analyzeBtn.querySelector('.btn-text').hidden = false;
-                analyzeBtn.querySelector('.btn-loading').hidden = true;
-                analyzeBtn.disabled = false;
-                progressSection.hidden = true;
-            }
-        });
-
-        function displayResults() {
-            resultsBody.innerHTML = '';
-
-            if (allResults.length === 0) {
-                resultsBody.innerHTML = '<tr><td colspan="5">No se encontraron resultados</td></tr>';
-                resultsSection.hidden = false;
-                return;
-            }
-
-            // Group results by date
-            const groupedByDate = {};
-            allResults.forEach(result => {
-                if (!groupedByDate[result.date]) {
-                    groupedByDate[result.date] = [];
-                }
-                groupedByDate[result.date].push(result);
-            });
-
-            // Sort dates
-            const sortedDates = Object.keys(groupedByDate).sort();
-
-            sortedDates.forEach(date => {
-                const results = groupedByDate[date];
-                const dateParts = date.split('-');
-                const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-                const dateObj = new Date(date);
-                const dayName = dayNames[dateObj.getDay()];
-                const formattedDate = `${dayName} ${dateParts[2]}/${dateParts[1]}`;
-
-                // Add date header row
-                const headerRow = document.createElement('tr');
-                headerRow.className = 'date-header-row';
-                headerRow.innerHTML = `<td colspan="5" class="date-header">${formattedDate}</td>`;
-                resultsBody.appendChild(headerRow);
-
-                // Add results for this date
-                results.forEach(result => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td></td>
-                        <td>${result.time || 'N/A'}</td>
-                        <td>${result.operator || 'Desconocido'}</td>
-                        <td>${result.price || '-'}</td>
-                        <td>${result.quota ? `<span class="quota-badge">${result.quota}</span>` : '-'}</td>
-                    `;
-                    resultsBody.appendChild(row);
+                const response = await fetch(`${API_URL}/api/scrape/manual`, {
+                    method: 'POST'
                 });
-            });
+                const data = await response.json();
 
-            resultsSection.hidden = false;
-        }
-
-        // Export to Excel
-        exportBtn.addEventListener('click', () => {
-            if (allResults.length === 0) return;
-
-            // Create CSV content
-            let csv = 'Fecha,Horario,Operador,Precio,Plazas\n';
-
-            allResults.forEach(r => {
-                const dateParts = r.date.split('-');
-                const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                const quota = r.quota || '';
-                csv += `"${formattedDate}","${r.time}","${r.operator}","${r.price || ''}","${quota}"\n`;
-            });
-
-            // Download
-            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-
-            const tourName = tourSelect.options[tourSelect.selectedIndex].text.replace(/[^a-zA-Z0-9]/g, '_');
-            link.download = `civitatis_${tourName}_${new Date().toISOString().split('T')[0]}.csv`;
-
-            link.click();
+                if (data.success) {
+                    alert('Actualizacion iniciada. Los datos se actualizaran en unos minutos.');
+                    // Reload after a delay
+                    setTimeout(() => {
+                        loadCalendarData();
+                    }, 30000);
+                }
+            } catch (error) {
+                showError('Error iniciando actualizacion');
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = 'Actualizar Datos Ahora';
+            }
         });
 
         // Initialize
-        renderCalendar();
-        updateSelectedCount();
+        loadTours();
     </script>
 </body>
 </html>
