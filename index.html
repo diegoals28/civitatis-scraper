@@ -100,9 +100,15 @@
             background: #ccc;
             cursor: not-allowed;
         }
-        .calendar-day.has-data.selected {
+        .calendar-day.selected {
             outline: 3px solid var(--brand-orange);
             outline-offset: -3px;
+        }
+        .calendar-day:not(.disabled):not(.empty):hover {
+            background: #e0e0e0;
+        }
+        .calendar-day.has-data:hover {
+            background: linear-gradient(135deg, var(--brand-green) 0%, #25a06a 100%) !important;
         }
         .selected-info {
             display: flex;
@@ -202,9 +208,14 @@
                         <span id="selected-count">0</span> fechas seleccionadas
                         <button type="button" id="clear-btn" class="clear-btn">Limpiar</button>
                     </div>
-                    <button type="button" id="export-btn" class="export-btn">
-                        Exportar Excel
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" id="scrape-selected-btn" class="refresh-btn" style="font-size: 12px; padding: 6px 12px;">
+                            Scrapear Seleccion
+                        </button>
+                        <button type="button" id="export-btn" class="export-btn">
+                            Exportar Excel
+                        </button>
+                    </div>
                 </div>
 
                 <div id="scrape-status" class="last-update" style="padding: 10px; background: #f9f9f9; border-radius: 8px; margin-top: 15px;">
@@ -344,16 +355,16 @@
                 if (cellDate < today) {
                     dayCell.classList.add('disabled');
                 } else {
+                    // Check if selected
+                    if (selectedDates.has(dateStr)) {
+                        dayCell.classList.add('selected');
+                    }
+
                     // Check if we have data for this date
                     const dateData = calendarData[dateStr];
 
                     if (dateData && dateData.schedules && dateData.schedules.length > 0) {
                         dayCell.classList.add('has-data');
-
-                        // Check if selected
-                        if (selectedDates.has(dateStr)) {
-                            dayCell.classList.add('selected');
-                        }
 
                         // Create tooltip
                         const tooltip = document.createElement('div');
@@ -375,10 +386,11 @@
                         `;
 
                         dayCell.appendChild(tooltip);
-
-                        // Click handler for selection
-                        dayCell.addEventListener('click', () => toggleDateSelection(dateStr, dayCell));
                     }
+
+                    // Click handler for selection (all future dates)
+                    dayCell.style.cursor = 'pointer';
+                    dayCell.addEventListener('click', () => toggleDateSelection(dateStr, dayCell));
                 }
 
                 calendarDays.appendChild(dayCell);
@@ -504,10 +516,66 @@
             link.click();
         }
 
+        async function scrapeSelectedDates() {
+            if (selectedDates.size === 0 || !selectedTourId) return;
+
+            const btn = document.getElementById('scrape-selected-btn');
+            btn.disabled = true;
+            btn.textContent = 'Scrapeando...';
+
+            const dates = Array.from(selectedDates).sort();
+            const tour = tours.find(t => t.id === selectedTourId);
+
+            let completed = 0;
+
+            for (const dateStr of dates) {
+                btn.textContent = `Scrapeando ${completed + 1}/${dates.length}...`;
+
+                try {
+                    const response = await fetch(`${API_URL}/api/scrape`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            url: tour.url,
+                            date: dateStr,
+                            language: 'es'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.data) {
+                        // Update local calendar data
+                        calendarData[dateStr] = {
+                            schedules: data.data.map(s => ({
+                                time: s.time,
+                                operator: s.operator,
+                                price: s.price,
+                                quota: s.quota
+                            })),
+                            has_data: true
+                        };
+                    }
+                    completed++;
+
+                } catch (error) {
+                    console.error(`Error scraping ${dateStr}:`, error);
+                }
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Scrapear Seleccion';
+
+            // Refresh calendar to show new data
+            renderCalendar();
+            alert(`Scrape completado: ${completed}/${dates.length} fechas`);
+        }
+
         // Event listeners
         clearBtn.addEventListener('click', clearSelection);
         exportBtn.addEventListener('click', exportToExcel);
         document.getElementById('reset-btn').addEventListener('click', resetScrapeStatus);
+        document.getElementById('scrape-selected-btn').addEventListener('click', scrapeSelectedDates);
 
         tourSelect.addEventListener('change', (e) => {
             selectedTourId = parseInt(e.target.value);
