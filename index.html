@@ -399,9 +399,11 @@
                         const cellIndex = startDay + day - 1;
                         const column = cellIndex % 7;
                         const row = Math.floor(cellIndex / 7);
+                        const totalRows = Math.ceil((startDay + totalDays) / 7);
 
-                        // Tooltip abajo si está en las primeras 2 filas
-                        if (row < 2) {
+                        // Tooltip abajo si está en las primeras 2 filas o en las filas del medio
+                        // Solo mostrar arriba en las últimas 2 filas
+                        if (row < totalRows - 2) {
                             tooltip.classList.add('tooltip-bottom');
                         }
                         // Tooltip a la derecha si está en las primeras 2 columnas (Lun, Mar)
