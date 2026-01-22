@@ -213,15 +213,29 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
 
     # For each schedule, select it and get the provider ID and price
     for schedule in schedules:
-        # Select this schedule to get its specific provider and price
-        await page.evaluate(f'''() => {{
-            const select = document.getElementById('horaActividad');
-            if (select) {{
-                select.value = '{schedule["time"]}';
-                select.dispatchEvent(new Event('change', {{ bubbles: true }}));
-            }}
-        }}''')
-        await page.wait_for_timeout(800)  # Wait for price to update
+        # Try clicking the radio button first (more reliable for triggering price updates)
+        radio_clicked = False
+        radio_selector = f'input[name="horaActividad-radios"][value="{schedule["time"]}"]'
+        radio_btn = page.locator(radio_selector)
+
+        if await radio_btn.count() > 0:
+            try:
+                await radio_btn.click()
+                radio_clicked = True
+                await page.wait_for_timeout(1500)  # Wait for price to update
+            except:
+                pass
+
+        # Fallback to select if radio click didn't work
+        if not radio_clicked:
+            await page.evaluate(f'''() => {{
+                const select = document.getElementById('horaActividad');
+                if (select) {{
+                    select.value = '{schedule["time"]}';
+                    select.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }}
+            }}''')
+            await page.wait_for_timeout(1500)  # Wait for price to update
 
         # Get provider ID for this schedule
         proveedor_field = page.locator('#idProveedor')
@@ -232,7 +246,8 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
         # Get operator name from mapping or show ID
         operator = provider_names.get(provider_id, f"Proveedor #{provider_id}") if provider_id else "Desconocido"
 
-        # Extract price for this specific schedule
+        # Extract price for this specific schedule - wait a bit more and get fresh value
+        await page.wait_for_timeout(500)
         price = await extract_price(page)
 
         results.append({
