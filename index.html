@@ -64,7 +64,7 @@
         }
         .tooltip-schedule {
             display: grid;
-            grid-template-columns: auto 1fr auto auto;
+            grid-template-columns: auto 1fr auto;
             gap: 8px;
             align-items: center;
             padding: 6px 0;
@@ -85,18 +85,23 @@
             white-space: nowrap;
             min-width: 0;
         }
+        .tooltip-price-container {
+            text-align: right;
+        }
         .tooltip-price {
             color: var(--brand-green);
             font-weight: 600;
             white-space: nowrap;
         }
         .tooltip-quota {
+            display: inline-block;
             background: var(--brand-orange);
             color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
             white-space: nowrap;
+            margin-top: 2px;
         }
         .no-data-message {
             text-align: center;
@@ -424,8 +429,10 @@
                                 <div class="tooltip-schedule">
                                     <span class="tooltip-time">${s.time}</span>
                                     <span class="tooltip-operator">${s.operator || 'N/A'}</span>
-                                    <span class="tooltip-price">${s.price || '-'}</span>
-                                    ${s.quota ? `<span class="tooltip-quota">${s.quota}</span>` : ''}
+                                    <div class="tooltip-price-container">
+                                        <span class="tooltip-price">${s.price || '-'}</span>
+                                        ${s.quota ? `<br><span class="tooltip-quota">${s.quota}</span>` : ''}
+                                    </div>
                                 </div>
                             `).join('')}
                         `;
