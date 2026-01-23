@@ -308,43 +308,26 @@ async def extract_operator_info(page: Page) -> str:
 async def extract_price(page: Page) -> str:
     """Extract price information from the page."""
 
-    # Try to get the price from the booking form price display
-    # This is the price that updates when selecting a schedule
-    price_selectors = [
-        '#tPrecioSpan0',  # Adult price in booking form
-        '.m-activity-price__top .a-text--price--big',
-        '.a-text--price--big',
-        '.pax-price',
-        '[class*="price-final"]',
-        '.total-price',
-        '#precioTotal',
-        '.booking-price',
-    ]
-
-    for selector in price_selectors:
-        element = page.locator(selector).first
-        if await element.count() > 0:
-            text = await element.text_content() or ""
-            text = text.strip()
-            # Extract numeric price with € symbol
-            price_match = re.search(r'(\d+[.,]?\d*)\s*€', text)
-            if price_match:
-                return price_match.group(1) + " €"
-            # Try without € symbol
-            price_match = re.search(r'(\d+[.,]\d{2})', text)
-            if price_match:
-                return price_match.group(1) + " €"
-
-    # Try to find price in the page via JavaScript
+    # Use JavaScript to get the most up-to-date price from the DOM
     try:
         price_js = await page.evaluate('''() => {
-            // Try to get from price spans
-            const priceEl = document.querySelector('#tPrecioSpan0');
-            if (priceEl) return priceEl.textContent;
+            // First try the hidden input which has the raw value
+            const hiddenPrice = document.querySelector('#tPrecio0');
+            if (hiddenPrice && hiddenPrice.value) {
+                return hiddenPrice.value;
+            }
 
-            // Try booking form total
-            const totalEl = document.querySelector('.m-activity-price__total');
-            if (totalEl) return totalEl.textContent;
+            // Try the visible price span
+            const priceSpan = document.querySelector('#tPrecioSpan0');
+            if (priceSpan) {
+                return priceSpan.textContent || priceSpan.innerText;
+            }
+
+            // Try the big price display
+            const bigPrice = document.querySelector('.a-text--price--big');
+            if (bigPrice) {
+                return bigPrice.textContent || bigPrice.innerText;
+            }
 
             return null;
         }''')
