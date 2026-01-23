@@ -253,9 +253,7 @@
                 </div>
 
                 <div class="action-buttons" style="margin-top: 20px; display: flex; gap: 10px;">
-                    <button type="button" id="refresh-btn" class="refresh-btn">
-                        Actualizar Datos Ahora
-                    </button>
+                    <!-- Scrape automático deshabilitado - usar solo Scrapear Selección -->
                     <button type="button" id="reset-btn" class="clear-btn" style="display: none;">
                         Resetear Scrape Atascado
                     </button>
@@ -286,7 +284,6 @@
         const prevMonthBtn = document.getElementById('prev-month');
         const nextMonthBtn = document.getElementById('next-month');
         const lastUpdateEl = document.getElementById('last-update');
-        const refreshBtn = document.getElementById('refresh-btn');
         const errorCard = document.getElementById('error-message');
         const errorText = document.getElementById('error-text');
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -644,39 +641,6 @@
         nextMonthBtn.addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() + 1);
             renderCalendar();
-        });
-
-        refreshBtn.addEventListener('click', async () => {
-            refreshBtn.disabled = true;
-            refreshBtn.textContent = 'Iniciando...';
-
-            try {
-                const response = await fetch(`${API_URL}/api/scrape/manual`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    refreshBtn.textContent = 'Scrape en progreso...';
-                    // Start monitoring status
-                    updateScrapeStatus();
-                    // Reload calendar periodically
-                    const checkInterval = setInterval(async () => {
-                        const statusResp = await fetch(`${API_URL}/api/scrape/status`);
-                        const statusData = await statusResp.json();
-                        if (statusData.last_scrape && statusData.last_scrape.status !== 'running') {
-                            clearInterval(checkInterval);
-                            refreshBtn.disabled = false;
-                            refreshBtn.textContent = 'Actualizar Datos Ahora';
-                            loadCalendarData();
-                        }
-                    }, 15000);
-                }
-            } catch (error) {
-                showError('Error iniciando actualizacion');
-                refreshBtn.disabled = false;
-                refreshBtn.textContent = 'Actualizar Datos Ahora';
-            }
         });
 
         // Initialize

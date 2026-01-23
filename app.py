@@ -54,6 +54,7 @@ def index():
 def scrape():
     """
     API endpoint to scrape tour operator information (real-time).
+    Also saves results to database.
     """
     try:
         data = request.get_json()
@@ -76,9 +77,33 @@ def scrape():
 
         results = asyncio.run(compare_all_schedules(url, date, language))
 
+        # Save results to database
+        tour = Tour.query.filter_by(url=url).first()
+        if tour and results:
+            date_obj = datetime.strptime(date, '%Y-%m-%d').date()
+            # Delete old data for this tour/date
+            Schedule.query.filter_by(tour_id=tour.id, date=date_obj).delete()
+
+            # Save new data
+            for result in results:
+                if result.get('time') and result['time'] != 'N/A':
+                    schedule = Schedule(
+                        tour_id=tour.id,
+                        date=date_obj,
+                        time=result['time'],
+                        operator=result.get('operator'),
+                        provider_id=result.get('provider_id'),
+                        price=result.get('price'),
+                        quota=result.get('quota')
+                    )
+                    db.session.add(schedule)
+
+            db.session.commit()
+
         return jsonify({"success": True, "data": results})
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({"success": False, "error": f"Error durante el scraping: {str(e)}"}), 500
 
 

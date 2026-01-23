@@ -33,21 +33,10 @@ scheduler = BackgroundScheduler(timezone=pytz.timezone('Europe/Rome'))
 
 def init_scheduler(app):
     """Initialize the scheduler with the Flask app context"""
-
-    def run_scrape_job():
-        with app.app_context():
-            run_daily_scrape()
-
-    # Schedule for 6:00 AM Rome time
-    scheduler.add_job(
-        run_scrape_job,
-        CronTrigger(hour=6, minute=0),
-        id='daily_scrape',
-        replace_existing=True
-    )
-
-    scheduler.start()
-    print("Scheduler started - daily scrape at 6:00 AM Rome time", flush=True)
+    # Automatic daily scrape disabled - user prefers manual scraping of selected dates
+    # The scheduler is kept but no jobs are added
+    # scheduler.start()
+    print("Scheduler initialized (automatic scrape disabled - use manual selection)", flush=True)
 
 
 def ensure_tours_exist():
