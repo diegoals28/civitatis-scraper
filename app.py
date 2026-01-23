@@ -208,15 +208,17 @@ def get_calendar_data(tour_id):
     """Get calendar data with availability summary for each date"""
     tour = Tour.query.get_or_404(tour_id)
 
-    # Get schedules for next 30 days
-    today = datetime.now().date()
-    end_date = today + timedelta(days=30)
+    # Get schedules for next 60 days (including some past dates for flexibility)
+    start_date = datetime.now().date() - timedelta(days=7)  # Include last 7 days
+    end_date = datetime.now().date() + timedelta(days=60)
 
     schedules = Schedule.query.filter(
         Schedule.tour_id == tour_id,
-        Schedule.date >= today,
+        Schedule.date >= start_date,
         Schedule.date <= end_date
     ).all()
+
+    print(f"Calendar {tour_id}: Found {len(schedules)} schedules from {start_date} to {end_date}", flush=True)
 
     # Group by date with summary
     calendar_data = {}
