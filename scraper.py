@@ -222,7 +222,7 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
             try:
                 await radio_btn.click()
                 radio_clicked = True
-                await page.wait_for_timeout(1500)  # Wait for price to update
+                await page.wait_for_timeout(600)  # Wait for price to update
             except:
                 pass
 
@@ -235,7 +235,7 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
                     select.dispatchEvent(new Event('change', {{ bubbles: true }}));
                 }}
             }}''')
-            await page.wait_for_timeout(1500)  # Wait for price to update
+            await page.wait_for_timeout(600)  # Wait for price to update
 
         # Get provider ID for this schedule
         proveedor_field = page.locator('#idProveedor')
@@ -246,8 +246,7 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
         # Get operator name from mapping or show ID
         operator = provider_names.get(provider_id, f"Proveedor #{provider_id}") if provider_id else "Desconocido"
 
-        # Extract price for this specific schedule - wait a bit more and get fresh value
-        await page.wait_for_timeout(500)
+        # Extract price for this specific schedule
         price = await extract_price(page)
 
         results.append({
