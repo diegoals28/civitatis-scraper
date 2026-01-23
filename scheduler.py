@@ -62,16 +62,20 @@ def ensure_tours_exist():
 
 def run_daily_scrape():
     """Run the daily scrape for all tours, next 30 days"""
-    print(f"Starting daily scrape at {datetime.now()}", flush=True)
+    import sys
+    print(f"=== SCRAPE STARTED at {datetime.now()} ===", flush=True)
+    sys.stdout.flush()
 
     # Create log entry
     log = ScrapeLog(status='running')
     db.session.add(log)
     db.session.commit()
+    print(f"Log created with id {log.id}", flush=True)
 
     try:
         ensure_tours_exist()
         tours = Tour.query.all()
+        print(f"Found {len(tours)} tours to scrape", flush=True)
 
         # Generate dates for next 30 days
         today = datetime.now().date()
@@ -83,10 +87,12 @@ def run_daily_scrape():
         for tour in tours:
             print(f"Scraping tour: {tour.name}", flush=True)
 
-            for date_str in dates:
+            for idx, date_str in enumerate(dates):
                 try:
+                    print(f"  [{idx+1}/30] {date_str}...", end=" ", flush=True)
                     # Run scraper
                     results = asyncio.run(compare_all_schedules(tour.url, date_str))
+                    print(f"OK ({len(results)} schedules)", flush=True)
 
                     # Delete old data for this tour/date
                     date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
