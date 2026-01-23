@@ -647,8 +647,8 @@
             btn.disabled = false;
             btn.textContent = 'Scrapear Seleccion';
 
-            // Refresh calendar and data table to show new data
-            renderCalendar();
+            // Reload data from server to get saved data
+            await loadCalendarData();
             renderSelectedDataTable();
             alert(`Scrape completado: ${completed}/${dates.length} fechas`);
         }

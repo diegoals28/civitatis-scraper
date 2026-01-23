@@ -82,9 +82,11 @@ def scrape():
         if tour and results:
             date_obj = datetime.strptime(date, '%Y-%m-%d').date()
             # Delete old data for this tour/date
-            Schedule.query.filter_by(tour_id=tour.id, date=date_obj).delete()
+            deleted = Schedule.query.filter_by(tour_id=tour.id, date=date_obj).delete()
+            print(f"Deleted {deleted} old schedules for {date}", flush=True)
 
             # Save new data
+            saved_count = 0
             for result in results:
                 if result.get('time') and result['time'] != 'N/A':
                     schedule = Schedule(
@@ -97,8 +99,12 @@ def scrape():
                         quota=result.get('quota')
                     )
                     db.session.add(schedule)
+                    saved_count += 1
 
             db.session.commit()
+            print(f"Saved {saved_count} schedules for {date}", flush=True)
+        else:
+            print(f"Tour not found for URL: {url}" if not tour else f"No results for {date}", flush=True)
 
         return jsonify({"success": True, "data": results})
 
