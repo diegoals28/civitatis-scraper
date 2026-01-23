@@ -222,7 +222,7 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
             try:
                 await radio_btn.click()
                 radio_clicked = True
-                await page.wait_for_timeout(600)  # Wait for price to update
+                await page.wait_for_timeout(800)  # Wait for price to update
             except:
                 pass
 
@@ -235,7 +235,7 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
                     select.dispatchEvent(new Event('change', {{ bubbles: true }}));
                 }}
             }}''')
-            await page.wait_for_timeout(600)  # Wait for price to update
+            await page.wait_for_timeout(800)  # Wait for price to update
 
         # Get provider ID for this schedule
         proveedor_field = page.locator('#idProveedor')
@@ -311,32 +311,45 @@ async def extract_price(page: Page) -> str:
     # Use JavaScript to get the most up-to-date price from the DOM
     try:
         price_js = await page.evaluate('''() => {
-            // First try the hidden input which has the raw value
-            const hiddenPrice = document.querySelector('#tPrecio0');
-            if (hiddenPrice && hiddenPrice.value) {
-                return hiddenPrice.value;
-            }
+            // Try multiple selectors in order of preference
+            const selectors = [
+                '#tPrecio0',           // Hidden input with raw value
+                '#tPrecioSpan0',       // Visible price span for adults
+                '.pax-price',          // Price class
+                '.a-text--price--big', // Big price display
+                '.m-counter--price input[type="hidden"]'  // Counter price
+            ];
 
-            // Try the visible price span
-            const priceSpan = document.querySelector('#tPrecioSpan0');
-            if (priceSpan) {
-                return priceSpan.textContent || priceSpan.innerText;
-            }
-
-            // Try the big price display
-            const bigPrice = document.querySelector('.a-text--price--big');
-            if (bigPrice) {
-                return bigPrice.textContent || bigPrice.innerText;
+            for (const selector of selectors) {
+                const el = document.querySelector(selector);
+                if (el) {
+                    // For inputs, get value attribute
+                    if (el.tagName === 'INPUT') {
+                        if (el.value && el.value.trim()) {
+                            return el.value.trim();
+                        }
+                    } else {
+                        // For other elements, get text content
+                        const text = (el.textContent || el.innerText || '').trim();
+                        if (text && /\d/.test(text)) {
+                            return text;
+                        }
+                    }
+                }
             }
 
             return null;
         }''')
+
         if price_js:
+            # Clean and extract price - handle formats like "52,51 €", "52.51€", "52,51"
+            price_js = price_js.replace('\n', '').replace('\t', '').strip()
             price_match = re.search(r'(\d+[.,]?\d*)\s*€?', price_js)
             if price_match:
-                return price_match.group(1) + " €"
-    except:
-        pass
+                price = price_match.group(1).replace('.', ',')  # Normalize to comma
+                return price + " €"
+    except Exception as e:
+        print(f"Error extracting price: {e}", flush=True)
 
     return None
 
