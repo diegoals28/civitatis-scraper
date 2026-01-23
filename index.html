@@ -175,6 +175,47 @@
             font-size: 12px;
             margin-left: 10px;
         }
+        /* Tabla de datos seleccionados */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .data-table th {
+            background: var(--brand-orange);
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .data-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .data-table tr:hover {
+            background: #f9f9f9;
+        }
+        .data-table .date-row {
+            background: linear-gradient(135deg, var(--brand-green) 0%, #25a06a 100%);
+            color: white;
+            font-weight: 600;
+        }
+        .data-table .date-row td {
+            padding: 12px 10px;
+            border-bottom: none;
+        }
+        .data-table .price-cell {
+            color: var(--brand-green);
+            font-weight: 600;
+        }
+        .data-table .quota-badge {
+            background: var(--brand-orange);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -248,20 +289,16 @@
                     </div>
                 </div>
 
-                <div id="scrape-status" class="last-update" style="padding: 10px; background: #f9f9f9; border-radius: 8px; margin-top: 15px;">
-                    <div id="scrape-status-text">Cargando estado...</div>
-                </div>
-
-                <div class="action-buttons" style="margin-top: 20px; display: flex; gap: 10px;">
-                    <!-- Scrape automático deshabilitado - usar solo Scrapear Selección -->
-                    <button type="button" id="reset-btn" class="clear-btn" style="display: none;">
-                        Resetear Scrape Atascado
-                    </button>
-                </div>
             </div>
 
             <div id="error-message" class="error-card" hidden>
                 <strong>Error:</strong> <span id="error-text"></span>
+            </div>
+
+            <!-- Tabla de datos de fechas seleccionadas -->
+            <div id="selected-data-section" style="display: none; margin-top: 20px;">
+                <h3 style="color: var(--brand-orange); margin-bottom: 15px;">Datos de Fechas Seleccionadas</h3>
+                <div id="selected-data-container"></div>
             </div>
         </main>
     </div>
@@ -333,9 +370,6 @@
                     calendarData = data.calendar || {};
                     renderCalendar();
                 }
-
-                // Get scrape status
-                await updateScrapeStatus();
 
             } catch (error) {
                 console.error('Error loading calendar data:', error);
@@ -452,65 +486,6 @@
             setTimeout(() => { errorCard.hidden = true; }, 5000);
         }
 
-        async function updateScrapeStatus() {
-            const statusEl = document.getElementById('scrape-status-text');
-            const resetBtn = document.getElementById('reset-btn');
-
-            try {
-                const response = await fetch(`${API_URL}/api/scrape/status`);
-                const data = await response.json();
-
-                if (data.success && data.last_scrape) {
-                    const scrape = data.last_scrape;
-
-                    if (scrape.status === 'running') {
-                        const startTime = new Date(scrape.started_at);
-                        const elapsed = Math.round((Date.now() - startTime.getTime()) / 60000);
-                        statusEl.innerHTML = `
-                            <span style="color: var(--brand-orange); font-weight: bold;">
-                                ⏳ Scrape en progreso...
-                            </span>
-                            <br><small>Iniciado: ${startTime.toLocaleString('es-ES')} (${elapsed} min)</small>
-                        `;
-                        // Show reset button if running for more than 5 minutes
-                        resetBtn.style.display = elapsed > 5 ? 'block' : 'none';
-                        // Auto-refresh status every 10 seconds while running
-                        setTimeout(updateScrapeStatus, 10000);
-                    } else if (scrape.status === 'success') {
-                        resetBtn.style.display = 'none';
-                        statusEl.innerHTML = `
-                            <span style="color: var(--brand-green);">✓ Ultimo scrape completado</span>
-                            <br><small>
-                                ${new Date(scrape.finished_at).toLocaleString('es-ES')}
-                                <br>${scrape.tours_scraped} tours, ${scrape.dates_scraped} fechas
-                            </small>
-                        `;
-                    } else if (scrape.status === 'failed') {
-                        resetBtn.style.display = 'none';
-                        statusEl.innerHTML = `
-                            <span style="color: red;">✗ Ultimo scrape falló</span>
-                            <br><small>${scrape.error || 'Error desconocido'}</small>
-                        `;
-                    }
-                } else {
-                    resetBtn.style.display = 'none';
-                    statusEl.innerHTML = '<small>No hay scrapes registrados. Click "Actualizar Datos Ahora"</small>';
-                }
-            } catch (error) {
-                statusEl.innerHTML = '<small style="color: red;">Error obteniendo estado</small>';
-            }
-        }
-
-        async function resetScrapeStatus() {
-            try {
-                await fetch(`${API_URL}/api/scrape/reset`, { method: 'POST' });
-                await updateScrapeStatus();
-                loadCalendarData();
-            } catch (error) {
-                showError('Error reseteando estado');
-            }
-        }
-
         function toggleDateSelection(dateStr, element) {
             if (selectedDates.has(dateStr)) {
                 selectedDates.delete(dateStr);
@@ -526,6 +501,63 @@
             const count = selectedDates.size;
             selectedCountEl.textContent = count;
             selectedInfo.style.display = count > 0 ? 'flex' : 'none';
+            renderSelectedDataTable();
+        }
+
+        function renderSelectedDataTable() {
+            const section = document.getElementById('selected-data-section');
+            const container = document.getElementById('selected-data-container');
+
+            if (selectedDates.size === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            const sortedDates = Array.from(selectedDates).sort();
+            const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+
+            let html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Horario</th>
+                            <th>Operador</th>
+                            <th>Precio</th>
+                            <th>Plazas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            sortedDates.forEach(dateStr => {
+                const dateData = calendarData[dateStr];
+                const dateParts = dateStr.split('-');
+                const dateObj = new Date(dateStr);
+                const dayName = dayNames[dateObj.getDay()];
+                const formattedDate = `${dayName} ${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+                // Fila de fecha
+                html += `<tr class="date-row"><td colspan="4">${formattedDate}</td></tr>`;
+
+                if (dateData && dateData.schedules && dateData.schedules.length > 0) {
+                    dateData.schedules.forEach(s => {
+                        html += `
+                            <tr>
+                                <td>${s.time}</td>
+                                <td>${s.operator || '-'}</td>
+                                <td class="price-cell">${s.price || '-'}</td>
+                                <td>${s.quota ? `<span class="quota-badge">${s.quota}</span>` : '-'}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    html += `<tr><td colspan="4" style="color: #999; font-style: italic;">Sin datos - Selecciona y usa "Scrapear Selección"</td></tr>`;
+                }
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            section.style.display = 'block';
         }
 
         function clearSelection() {
@@ -615,15 +647,15 @@
             btn.disabled = false;
             btn.textContent = 'Scrapear Seleccion';
 
-            // Refresh calendar to show new data
+            // Refresh calendar and data table to show new data
             renderCalendar();
+            renderSelectedDataTable();
             alert(`Scrape completado: ${completed}/${dates.length} fechas`);
         }
 
         // Event listeners
         clearBtn.addEventListener('click', clearSelection);
         exportBtn.addEventListener('click', exportToExcel);
-        document.getElementById('reset-btn').addEventListener('click', resetScrapeStatus);
         document.getElementById('scrape-selected-btn').addEventListener('click', scrapeSelectedDates);
 
         tourSelect.addEventListener('change', (e) => {
