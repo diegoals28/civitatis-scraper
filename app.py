@@ -249,8 +249,8 @@ def scrape_status():
     return jsonify({
         "success": True,
         "last_scrape": {
-            "started_at": log.started_at.isoformat() if log.started_at else None,
-            "finished_at": log.finished_at.isoformat() if log.finished_at else None,
+            "started_at": (log.started_at.isoformat() + "Z") if log.started_at else None,
+            "finished_at": (log.finished_at.isoformat() + "Z") if log.finished_at else None,
             "status": log.status,
             "tours_scraped": log.tours_scraped,
             "dates_scraped": log.dates_scraped,
