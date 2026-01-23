@@ -222,7 +222,7 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
             try:
                 await radio_btn.click()
                 radio_clicked = True
-                await page.wait_for_timeout(800)  # Wait for price to update
+                await page.wait_for_timeout(1000)  # Wait for price to update
             except:
                 pass
 
@@ -235,7 +235,7 @@ async def get_schedules_and_operators(page: Page, url: str, date: str, language:
                     select.dispatchEvent(new Event('change', {{ bubbles: true }}));
                 }}
             }}''')
-            await page.wait_for_timeout(800)  # Wait for price to update
+            await page.wait_for_timeout(1000)  # Wait for price to update
 
         # Get provider ID for this schedule
         proveedor_field = page.locator('#idProveedor')
@@ -313,9 +313,9 @@ async def extract_price(page: Page) -> str:
         price_js = await page.evaluate('''() => {
             // Try multiple selectors in order of preference
             const selectors = [
-                '#tPrecio0',           // Hidden input with raw value
-                '#tPrecioSpan0',       // Visible price span for adults
+                '#tPrecioSpan0',       // Visible price span for adults (most accurate)
                 '.pax-price',          // Price class
+                '#tPrecio0',           // Hidden input with raw value
                 '.a-text--price--big', // Big price display
                 '.m-counter--price input[type="hidden"]'  // Counter price
             ];
